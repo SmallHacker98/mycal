@@ -1,171 +1,37 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro PWA Calendar</title>
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #2563eb; --bg: #f8fafc; --surface: #ffffff;
-            --text: #1e293b; --border: #e2e8f0; --modal-bg: rgba(0,0,0,0.4);
-        }
-        /* ダークモード設定 */
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg: #0f172a; --surface: #1e293b; --text: #f8fafc; --border: #334155;
-            }
-            .fc { --fc-page-bg-color: #1e293b; --fc-border-color: #334155; }
-        }
-
-        body { font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; background: var(--bg); color: var(--text); transition: 0.3s; }
-        header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background: var(--surface); border-bottom: 1px solid var(--border); }
-        #calendar-container { padding: 1.5rem; max-width: 1300px; margin: 0 auto; }
-        
-        /* モーダル & フォーム */
-        #eventModal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: var(--modal-bg); backdrop-filter: blur(4px); }
-        .modal-content { background: var(--surface); margin: 5% auto; padding: 2rem; width: 90%; max-width: 450px; border-radius: 20px; animation: slideUp 0.3s ease-out; }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        
-        .form-group { margin-bottom: 1.2rem; }
-        label { display: block; margin-bottom: 0.4rem; font-size: 0.85rem; font-weight: 600; }
-        input, select, textarea { width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); box-sizing: border-box; }
-        
-        .tag-options { display: flex; gap: 8px; margin-top: 5px; }
-        .tag-btn { flex: 1; padding: 8px; border-radius: 8px; border: 2px solid transparent; cursor: pointer; text-align: center; font-size: 0.8rem; font-weight: bold; }
-        
-        .modal-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 2rem; }
-        .btn { padding: 0.8rem; border-radius: 10px; border: none; cursor: pointer; font-weight: 600; transition: 0.2s; }
-        .btn-save { background: var(--primary); color: white; grid-column: span 2; }
-        .btn-export { background: #10b981; color: white; grid-column: span 2; }
-        
-        /* カレンダー内の祝日・色 */
-        .holiday-label { color: #ef4444; font-size: 0.7rem; font-weight: bold; }
-    </style>
-</head>
-<body>
-
-<header>
-    <div style="font-weight: 800; font-size: 1.4rem;">Smart Calendar</div>
-    <div id="theme-status" style="font-size: 0.8rem; opacity: 0.6;">Auto Night Mode Enabled</div>
-</header>
-
-<div id="calendar-container">
-    <div id="calendar"></div>
-</div>
-
-<div id="eventModal">
-    <div class="modal-content">
-        <h2 style="margin:0 0 1.5rem 0; font-size: 1.2rem;">予定の詳細設定</h2>
-        
-        <div class="form-group">
-            <label>タイトル</label>
-            <input type="text" id="eventTitle" placeholder="会議、外出など">
-        </div>
-
-        <div style="display: flex; gap: 10px;">
-            <div class="form-group" style="flex: 1;">
-                <label>開始時間</label>
-                <input type="time" id="startTime">
-            </div>
-            <div class="form-group" style="flex: 1;">
-                <label>終了時間</label>
-                <input type="time" id="endTime">
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label>カテゴリータグ</label>
-            <div class="tag-options">
-                <div class="tag-btn" style="background:#dbeafe; color:#1e40af;" onclick="setTag('work', '#3b82f6')">仕事</div>
-                <div class="tag-btn" style="background:#dcfce7; color:#166534;" onclick="setTag('private', '#10b981')">プライベート</div>
-                <div class="tag-btn" style="background:#f1f5f9; color:#475569;" onclick="setTag('other', '#94a3b8')">その他</div>
-            </div>
-            <input type="hidden" id="eventColor" value="#3b82f6">
-        </div>
-
-        <div class="modal-footer">
-            <button class="btn btn-save" onclick="handleSave(false)">保存する</button>
-            <button class="btn btn-export" onclick="handleSave(true)">保存してOutlook/iCalへ送る</button>
-            <button class="btn" style="grid-column: span 2; background:none;" onclick="closeModal()">キャンセル</button>
-        </div>
-    </div>
-</div>
-
-<script>
-    let calendar;
-    let selectedInfo = null;
-    let currentTagColor = '#3b82f6';
-    const HOLIDAYS = { "2026-01-01": "元日", "2026-01-12": "成人の日", "2026-02-11": "建国記念の日" };
-
-    document.addEventListener('DOMContentLoaded', function() {
-        calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
-            headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' },
+calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+            headerToolbar: { 
+                left: 'prev,next today', 
+                center: 'title', 
+                right: 'dayGridMonth,timeGridWeek,timeGridDay' 
+            },
             locale: 'ja',
             selectable: true,
             nowIndicator: true,
             navLinks: true,
             events: JSON.parse(localStorage.getItem('pro_events') || '[]'),
-            dayCellContent: (arg) => {
-                const ds = arg.date.toLocaleDateString('sv-SE');
-                return HOLIDAYS[ds] ? { html: `<div>${arg.dayNumberText}<span class="holiday-label">${HOLIDAYS[ds]}</span></div>` } : null;
+
+            // 1. 日付の表示と祝日名の挿入
+            dayCellContent: function(arg) {
+                const dateStr = arg.date.toLocaleDateString('sv-SE'); // YYYY-MM-DD
+                const holidayName = HOLIDAYS[dateStr];
+                
+                // 日付数字を確実に表示し、祝日があれば名前を添える
+                let html = `<div class="fc-daygrid-day-number">${arg.dayNumberText}</div>`;
+                if (holidayName) {
+                    html = `<div class="fc-daygrid-day-number">${arg.dayNumberText}</div>
+                            <div class="holiday-label">${holidayName}</div>`;
+                }
+                return { html: html };
             },
+
+            // 2. 祝日の背景色を日曜日（赤系）と同じにする
+            dayCellDidMount: function(arg) {
+                const dateStr = arg.date.toLocaleDateString('sv-SE');
+                if (HOLIDAYS[dateStr]) {
+                    // 日曜日と同じ背景色（CSSで定義した変数や直接指定）を適用
+                    arg.el.style.backgroundColor = '#fff1f2'; 
+                }
+            },
+
             select: (info) => { selectedInfo = info; openModal(); }
         });
-        calendar.render();
-    });
-
-    function setTag(type, color) {
-        currentTagColor = color;
-        document.querySelectorAll('.tag-btn').forEach(b => b.style.border = '2px solid transparent');
-        event.target.style.border = `2px solid ${color}`;
-    }
-
-    function openModal() {
-        document.getElementById('eventModal').style.display = 'block';
-        // 選択された日付から時間をセット（デフォルトは現在時刻など）
-        document.getElementById('startTime').value = "09:00";
-        document.getElementById('endTime').value = "10:00";
-    }
-
-    function closeModal() { document.getElementById('eventModal').style.display = 'none'; }
-
-    function handleSave(andExport) {
-        const title = document.getElementById('eventTitle').value;
-        const startT = document.getElementById('startTime').value;
-        const endT = document.getElementById('endTime').value;
-        
-        if (!title) return alert("タイトルを入力してください");
-
-        const newEvent = {
-            title: title,
-            start: `${selectedInfo.startStr.split('T')[0]}T${startT}:00`,
-            end: `${selectedInfo.startStr.split('T')[0]}T${endT}:00`,
-            backgroundColor: currentTagColor,
-            borderColor: currentTagColor
-        };
-
-        calendar.addEvent(newEvent);
-        saveToLocal();
-        if (andExport) exportSingleEvent(newEvent);
-        closeModal();
-    }
-
-    function saveToLocal() {
-        const evs = calendar.getEvents().map(e => ({
-            title: e.title, start: e.startStr, end: e.endStr, backgroundColor: e.backgroundColor
-        }));
-        localStorage.setItem('pro_events', JSON.stringify(evs));
-    }
-
-    function exportSingleEvent(e) {
-        const start = e.start.replace(/[-:]/g, '').split('.')[0] + "Z";
-        const end = e.end.replace(/[-:]/g, '').split('.')[0] + "Z";
-        const ics = ["BEGIN:VCALENDAR","VERSION:2.0","BEGIN:VEVENT",`SUMMARY:${e.title}`,`DTSTART:${start}`,`DTEND:${end}`,"END:VEVENT","END:VCALENDAR"].join("\r\n");
-        const blob = new Blob([ics], { type: "text/calendar" });
-        const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `${e.title}.ics`; a.click();
-    }
-</script>
-</body>
-</html>
