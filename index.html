@@ -3,118 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro PWA Calendar v3</title>
+    <title>Infinity PWA Calendar JP</title>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     
     <style>
         :root {
-            /* ライトモード用カラー */
-            --primary: #2563eb;
-            --bg: #f8fafc;
-            --surface: #ffffff;
-            --text: #1e293b;
-            --border: #e2e8f0;
-            --modal-bg: rgba(0, 0, 0, 0.4);
-            
-            /* 曜日・祝日の背景色（ライト） */
-            --sunday-bg: #fff1f2;   /* 薄い赤 */
-            --saturday-bg: #eff6ff; /* 薄い青 */
-            --holiday-text: #ef4444; /* 鮮やかな赤 */
+            --primary: #2563eb; --bg: #f8fafc; --surface: #ffffff; --text: #1e293b; --border: #e2e8f0;
+            --sunday-bg: #fff1f2; --saturday-bg: #eff6ff; --holiday-text: #ef4444;
         }
 
-        /* ナイトモード用カラー調整 */
         @media (prefers-color-scheme: dark) {
             :root {
-                --bg: #0f172a;
-                --surface: #1e293b;
-                --text: #f1f5f9;
-                --border: #334155;
-                --modal-bg: rgba(0, 0, 0, 0.7);
-                
-                /* ナイトモードでも沈まない配色 */
-                --sunday-bg: rgba(244, 63, 94, 0.15);  /* 透明度を活かした深い赤 */
-                --saturday-bg: rgba(59, 130, 246, 0.15); /* 透明度を活かした深い青 */
-                --holiday-text: #fb7185; /* 少し明るいサーモンピンク（視認性向上） */
+                --bg: #0f172a; --surface: #1e293b; --text: #f1f5f9; --border: #334155;
+                --sunday-bg: rgba(244, 63, 94, 0.15); --saturday-bg: rgba(59, 130, 246, 0.15);
+                --holiday-text: #fb7185;
             }
-            .fc {
-                --fc-page-bg-color: #1e293b;
-                --fc-border-color: #334155;
-                --fc-list-day-cushion-bg-color: #1e293b;
-            }
+            .fc { --fc-page-bg-color: #1e293b; --fc-border-color: #334155; }
         }
 
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            margin: 0; background: var(--bg); color: var(--text); 
-            transition: background-color 0.3s, color 0.3s;
-        }
-
-        header {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 0.8rem 1.5rem; background: var(--surface); border-bottom: 1px solid var(--border);
-            position: sticky; top: 0; z-index: 100;
-        }
-
+        body { font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; background: var(--bg); color: var(--text); }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 1.5rem; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
         #calendar-container { padding: 1rem; max-width: 1400px; margin: 0 auto; }
-        #calendar { 
-            background: var(--surface); padding: 1rem; border-radius: 16px; 
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            height: calc(100vh - 120px);
-        }
-
-        /* 曜日・祝日のスタイル */
-        .fc-day-sun { background-color: var(--sunday-bg) !important; }
+        #calendar { background: var(--surface); padding: 1rem; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); height: calc(100vh - 120px); }
+        
+        .fc-day-sun, .fc-day-holiday { background-color: var(--sunday-bg) !important; }
         .fc-day-sat { background-color: var(--saturday-bg) !important; }
-        .holiday-label { 
-            color: var(--holiday-text); 
-            font-size: 0.7rem; font-weight: 800; display: block; margin-top: 4px;
-        }
-        /* 日付数字のスタイル調整 */
+        .holiday-label { color: var(--holiday-text); font-size: 0.7rem; font-weight: 800; display: block; margin-top: 4px; }
         .fc-daygrid-day-number { font-weight: 600; padding: 4px 8px !important; }
-        .fc-day-sun .fc-daygrid-day-number, .fc-day-holiday .fc-daygrid-day-number {
-            color: var(--holiday-text);
-        }
+        .fc-day-sun .fc-daygrid-day-number, .fc-day-holiday .fc-daygrid-day-number { color: var(--holiday-text); }
 
-        /* モーダル */
-        #eventModal {
-            display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%;
-            background: var(--modal-bg); backdrop-filter: blur(8px);
-        }
-        .modal-content {
-            background: var(--surface); margin: 5% auto; padding: 2rem; width: 90%; max-width: 420px;
-            border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-        .form-group { margin-bottom: 1.2rem; }
-        label { display: block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 700; opacity: 0.9; }
-        input, select { 
-            width: 100%; padding: 0.85rem; border: 1px solid var(--border); border-radius: 12px; 
-            background: var(--bg); color: var(--text); box-sizing: border-box; font-size: 1rem;
-        }
-
-        /* タグ選択 */
-        .tag-group { display: flex; gap: 10px; margin-top: 5px; }
-        .tag-btn { 
-            flex: 1; padding: 12px; border-radius: 12px; border: 3px solid transparent; 
-            cursor: pointer; font-size: 0.8rem; font-weight: 800; text-align: center; transition: 0.2s;
-        }
-        .tag-btn.active { border-color: var(--text); transform: scale(0.96); }
-
-        .modal-footer { display: flex; flex-direction: column; gap: 12px; margin-top: 2rem; }
-        .btn { padding: 1rem; border-radius: 14px; border: none; cursor: pointer; font-weight: 700; transition: 0.2s; }
+        #eventModal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); }
+        .modal-content { background: var(--surface); margin: 5% auto; padding: 2rem; width: 90%; max-width: 420px; border-radius: 24px; animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .form-group { margin-bottom: 1rem; }
+        input { width: 100%; padding: 0.8rem; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); color: var(--text); box-sizing: border-box; }
+        .tag-group { display: flex; gap: 8px; }
+        .tag-btn { flex: 1; padding: 10px; border-radius: 10px; cursor: pointer; text-align: center; font-size: 0.75rem; font-weight: bold; border: 2px solid transparent; }
+        .tag-btn.active { border-color: var(--text); }
+        .modal-footer { display: flex; flex-direction: column; gap: 10px; margin-top: 1.5rem; }
+        .btn { padding: 1rem; border-radius: 12px; border: none; cursor: pointer; font-weight: 700; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-success { background: #10b981; color: white; }
-        .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
     </style>
 </head>
 <body>
 
 <header>
-    <div style="font-weight: 800; font-size: 1.4rem; color: var(--primary); letter-spacing: -0.5px;">Advanced Calendar</div>
-    <div style="font-size: 0.75rem; font-weight: 600; opacity: 0.6; background: var(--border); padding: 4px 12px; border-radius: 20px;">Night Mode Optimized</div>
+    <div style="font-weight: 800; font-size: 1.2rem; color: var(--primary);">Smart PWA Cal v4</div>
+    <div style="font-size: 0.7rem; opacity: 0.6;">Auto Holiday Logic Enabled</div>
 </header>
 
 <div id="calendar-container">
@@ -123,128 +60,98 @@
 
 <div id="eventModal">
     <div class="modal-content">
-        <h2 style="margin: 0 0 1.5rem 0; font-size: 1.4rem; letter-spacing: -0.5px;">予定を登録</h2>
-        
-        <div class="form-group">
-            <label>タイトル</label>
-            <input type="text" id="eventTitle" placeholder="プロジェクト調整会議など">
+        <h2 style="margin: 0 0 1rem 0; font-size: 1.2rem;">予定の登録</h2>
+        <div class="form-group"><label>タイトル</label><input type="text" id="eventTitle"></div>
+        <div style="display: flex; gap: 10px;">
+            <div class="form-group" style="flex:1;"><label>開始</label><input type="time" id="startTime" value="09:00"></div>
+            <div class="form-group" style="flex:1;"><label>終了</label><input type="time" id="endTime" value="10:00"></div>
         </div>
-
-        <div style="display: flex; gap: 15px;">
-            <div class="form-group" style="flex: 1;">
-                <label>開始</label>
-                <input type="time" id="startTime" value="09:00">
-            </div>
-            <div class="form-group" style="flex: 1;">
-                <label>終了</label>
-                <input type="time" id="endTime" value="10:00">
-            </div>
-        </div>
-
         <div class="form-group">
-            <label>カテゴリー</label>
+            <label>タグ</label>
             <div class="tag-group">
-                <div id="t-w" class="tag-btn" style="background:#3b82f6; color:white;" onclick="selTag('#3b82f6', 't-w')">仕事</div>
-                <div id="t-p" class="tag-btn" style="background:#10b981; color:white;" onclick="selTag('#10b981', 't-p')">私用</div>
-                <div id="t-o" class="tag-btn" style="background:#64748b; color:white;" onclick="selTag('#64748b', 't-o')">その他</div>
+                <div id="tw" class="tag-btn" style="background:#3b82f6; color:white;" onclick="selTag('#3b82f6','tw')">仕事</div>
+                <div id="tp" class="tag-btn" style="background:#10b981; color:white;" onclick="selTag('#10b981','tp')">私用</div>
             </div>
         </div>
-
         <div class="modal-footer">
-            <button class="btn btn-primary" onclick="doSave(false)">保存する</button>
+            <button class="btn btn-primary" onclick="doSave(false)">保存</button>
             <button class="btn btn-success" onclick="doSave(true)">保存してiCal出力</button>
-            <button class="btn btn-ghost" onclick="closeModal()">キャンセル</button>
+            <button class="btn" style="background:none; color:var(--text)" onclick="closeModal()">キャンセル</button>
         </div>
     </div>
 </div>
 
 <script>
-    let calendar;
-    let selectedInfo = null;
-    let currentTagColor = '#3b82f6';
+    let calendar, selectedInfo, currentTagColor = '#3b82f6';
 
-    const HOLIDAYS = {
-        "2026-01-01": "元日", "2026-01-12": "成人の日", "2026-02-11": "建国記念の日",
-        "2026-02-23": "天皇誕生日", "2026-03-20": "春分の日", "2026-04-29": "昭和の日",
-        "2026-05-03": "憲法記念日", "2026-05-04": "みどりの日", "2026-05-05": "こどもの日",
-        "2026-05-06": "振替休日", "2026-07-20": "海の日", "2026-08-11": "山の日",
-        "2026-09-21": "敬老の日", "2026-09-22": "国民の休日", "2026-09-23": "秋分の日",
-        "2026-10-12": "スポーツの日", "2026-11-03": "文化の日", "2026-11-23": "勤労感謝の日"
-    };
+    // 祝日判定ロジック（簡易計算式 + 特殊日）
+    function getHolidayName(date) {
+        const y = date.getFullYear(), m = date.getMonth() + 1, d = date.getDate(), w = date.getDay();
+        const dateStr = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        
+        // 固定祝日
+        const fixed = {"01-01":"元日","02-11":"建国記念の日","02-23":"天皇誕生日","04-29":"昭和の日","05-03":"憲法記念日","05-04":"みどりの日","05-05":"こどもの日","11-03":"文化の日","11-23":"勤労感謝の日"};
+        if(fixed[`${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`]) return fixed[`${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`];
+
+        // ハッピーマンデー (第n月曜日)
+        const nthW = Math.floor((d - 1) / 7) + 1;
+        if(w === 1) {
+            if(m === 1 && nthW === 2) return "成人の日";
+            if(m === 7 && nthW === 3) return "海の日";
+            if(m === 9 && nthW === 3) return "敬老の日";
+            if(m === 10 && nthW === 2) return "スポーツの日";
+        }
+
+        // 山の日 (2016以降)
+        if(y >= 2016 && m === 8 && d === 11) return "山の日";
+
+        // 春分・秋分の日 (簡易計算式)
+        if(m === 3 && d === Math.floor(20.8431 + 0.242194 * (y - 1980) - Math.floor((y - 1980) / 4))) return "春分の日";
+        if(m === 9 && d === Math.floor(23.2488 + 0.242194 * (y - 1980) - Math.floor((y - 1980) / 4))) return "秋分の日";
+
+        return null;
+    }
+
+    // 振替休日の判定
+    function isTransferHoliday(date) {
+        const prev = new Date(date); prev.setDate(date.getDate() - 1);
+        if(date.getDay() === 1 && getHolidayName(prev)) return true;
+        return false;
+    }
 
     document.addEventListener('DOMContentLoaded', function() {
         calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'multiMonthYear,dayGridMonth,timeGridWeek,timeGridDay'
-            },
-            buttonText: { year: '年', month: '月', week: '週', day: '日', today: '今日' },
-            initialView: 'dayGridMonth',
-            locale: 'ja',
-            selectable: true,
-            navLinks: true,
-            events: JSON.parse(localStorage.getItem('pwa_cal_v3') || '[]'),
-
-            dayCellContent: function(arg) {
-                const dateStr = arg.date.toLocaleDateString('sv-SE');
-                const holidayName = HOLIDAYS[dateStr];
+            headerToolbar: { left: 'prev,next today', center: 'title', right: 'multiMonthYear,dayGridMonth,timeGridWeek,timeGridDay' },
+            locale: 'ja', selectable: true, navLinks: true,
+            events: JSON.parse(localStorage.getItem('pwa_v4_data') || '[]'),
+            dayCellContent: (arg) => {
+                let name = getHolidayName(arg.date);
+                if(!name && isTransferHoliday(arg.date)) name = "振替休日";
                 let html = `<div class="fc-daygrid-day-number">${arg.dayNumberText}</div>`;
-                if (holidayName) html += `<span class="holiday-label">${holidayName}</span>`;
-                return { html: html };
+                if(name) html += `<span class="holiday-label">${name}</span>`;
+                return { html };
             },
-
-            dayCellDidMount: function(arg) {
-                const dateStr = arg.date.toLocaleDateString('sv-SE');
-                if (HOLIDAYS[dateStr]) {
-                    arg.el.classList.add('fc-day-sun'); 
-                    arg.el.classList.add('fc-day-holiday');
-                }
+            dayCellDidMount: (arg) => {
+                if(getHolidayName(arg.date) || isTransferHoliday(arg.date)) arg.el.classList.add('fc-day-holiday');
             },
-
-            select: (info) => { selectedInfo = info; openModal(); }
+            select: (info) => { selectedInfo = info; document.getElementById('eventModal').style.display='block'; }
         });
-
         calendar.render();
-        selTag('#3b82f6', 't-w');
+        selTag('#3b82f6', 'tw');
     });
 
-    function selTag(color, id) {
-        currentTagColor = color;
-        document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-    }
-
-    function openModal() { document.getElementById('eventModal').style.display = 'block'; }
-    function closeModal() { document.getElementById('eventModal').style.display = 'none'; }
-
+    function selTag(c, id) { currentTagColor = c; document.querySelectorAll('.tag-btn').forEach(b=>b.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+    function closeModal() { document.getElementById('eventModal').style.display='none'; }
     function doSave(isExport) {
         const title = document.getElementById('eventTitle').value;
-        const sTime = document.getElementById('startTime').value;
-        const eTime = document.getElementById('endTime').value;
-
-        if (!title) return alert('タイトルを入力してください');
-
-        const ev = {
-            title: title,
-            start: `${selectedInfo.startStr.split('T')[0]}T${sTime}:00`,
-            end: `${selectedInfo.startStr.split('T')[0]}T${eTime}:00`,
-            backgroundColor: currentTagColor,
-            borderColor: 'transparent'
-        };
-
+        if(!title) return;
+        const ev = { title, start: `${selectedInfo.startStr.split('T')[0]}T${document.getElementById('startTime').value}:00`, end: `${selectedInfo.startStr.split('T')[0]}T${document.getElementById('endTime').value}:00`, backgroundColor: currentTagColor, borderColor: 'transparent' };
         calendar.addEvent(ev);
-        const data = calendar.getEvents().map(e => ({
-            title: e.title, start: e.startStr, end: e.endStr, backgroundColor: e.backgroundColor
-        }));
-        localStorage.setItem('pwa_cal_v3', JSON.stringify(data));
-        
-        if (isExport) {
-            const f = (d) => d.replace(/[-:]/g, '').split('.')[0] + "Z";
-            const ics = ["BEGIN:VCALENDAR","VERSION:2.0","BEGIN:VEVENT",`SUMMARY:${ev.title}`,`DTSTART:${f(ev.start)}`,`DTEND:${f(ev.end)}`,"END:VEVENT","END:VCALENDAR"].join("\r\n");
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(new Blob([ics], {type:"text/calendar"}));
-            link.download = `${ev.title}.ics`; link.click();
+        localStorage.setItem('pwa_v4_data', JSON.stringify(calendar.getEvents().map(e=>({title:e.title, start:e.startStr, end:e.endStr, backgroundColor:e.backgroundColor}))));
+        if(isExport) {
+            const f = d => d.replace(/[-:]/g,'').split('.')[0]+"Z";
+            const ics = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nSUMMARY:${title}\r\nDTSTART:${f(ev.start)}\r\nDTEND:${f(ev.end)}\r\nEND:VEVENT\r\nEND:VCALENDAR`;
+            const a = document.createElement("a"); a.href=URL.createObjectURL(new Blob([ics],{type:"text/calendar"})); a.download=`${title}.ics`; a.click();
         }
         closeModal();
     }
