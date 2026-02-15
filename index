@@ -1,0 +1,65 @@
+// 1. 日本の祝日判定ロジック (簡易版)
+// 実際には 'holiday-jp' などのnpmライブラリを使用すると正確です
+const getJapaneseHoliday = (date) => {
+  const holidays = {
+    "2026-01-01": "元日",
+    "2026-01-12": "成人の日",
+    "2026-02-11": "建国記念の日",
+    "2026-02-23": "天皇誕生日",
+    // 実際の実装では計算式または外部データを使用
+  };
+  const key = date.toISOString().split('T')[0];
+  return holidays[key] || null;
+};
+
+// 2. .icsファイルの生成とダウンロード
+const exportToIcal = (events) => {
+  let icsContent = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//My PWA Calendar//JP",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH"
+  ];
+
+  events.forEach(event => {
+    const start = event.start.toISOString().replace(/[-:]/g, '').split('.')[0] + "Z";
+    const end = event.end.toISOString().replace(/[-:]/g, '').split('.')[0] + "Z";
+    
+    icsContent.push(
+      "BEGIN:VEVENT",
+      `SUMMARY:${event.title}`,
+      `DTSTART:${start}`,
+      `DTEND:${end}`,
+      `DESCRIPTION:${event.description || ""}`,
+      "STATUS:CONFIRMED",
+      "SEQUENCE:0",
+      "END:VEVENT"
+    );
+  });
+
+  icsContent.push("END:VCALENDAR");
+
+  // Blobを作成してダウンロード実行
+  const blob = new Blob([icsContent.join("\r\n")], { type: "text/calendar;charset=utf-8" });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", "calendar-export.ics");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+// 3. 実行例
+const myEvents = [
+  {
+    title: "プロジェクト会議",
+    start: new Date("2026-03-10T10:00:00"),
+    end: new Date("2026-03-10T11:00:00"),
+    description: "PWA開発の進捗確認"
+  }
+];
+
+// ボタンクリック等で呼び出し
+// exportToIcal(myEvents);
