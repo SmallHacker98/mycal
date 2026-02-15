@@ -3,99 +3,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Business PWA Calendar</title>
+    <title>Advanced PWA Calendar</title>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; margin: 0; padding: 20px; background: #f4f7f6; }
-        #calendar-container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .controls { margin-bottom: 20px; display: flex; gap: 10px; }
-        button { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
-        .btn-export { background: #0078d4; color: white; } /* Outlook Blue */
-        .fc-day-sun { background-color: #fff0f0; } /* 日曜 */
-        .fc-day-sat { background-color: #f0f7ff; } /* 土曜 */
-        .holiday-name { font-size: 0.75em; color: #d32f2f; margin-left: 5px; }
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --holiday: #ef4444;
+        }
+
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            margin: 0; background: var(--bg); color: var(--text);
+        }
+
+        /* Header Styles */
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 1rem 2rem; background: var(--surface); border-bottom: 1px solid #e2e8f0;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #e2e8f0;
+            background: var(--surface); cursor: pointer; font-weight: 600; transition: 0.2s;
+        }
+        .btn:hover { background: #f1f5f9; }
+        .btn-primary { background: var(--primary); color: white; border: none; }
+        .btn-primary:hover { background: #1d4ed8; }
+
+        /* Calendar Styles */
+        #calendar-container { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+        #calendar { background: var(--surface); padding: 1.5rem; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .fc-day-sun { background-color: #fff1f2; }
+        .fc-day-sat { background-color: #eff6ff; }
+        .holiday-label { color: var(--holiday); font-size: 0.7rem; display: block; margin-top: 2px; font-weight: 700; }
+
+        /* Custom Modal */
+        #eventModal {
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            background: var(--surface); margin: 10% auto; padding: 2rem;
+            width: 90%; max-width: 400px; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+            animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .form-group { margin-bottom: 1.5rem; }
+        label { display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600; }
+        input { width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 2rem; }
     </style>
 </head>
 <body>
 
+<header>
+    <div style="font-size: 1.2rem; font-weight: 700; color: var(--primary);">PWA Calendar v2</div>
     <div class="controls">
-        <button class="btn-export" onclick="exportCalendar()">Outlook/macOSへ書き出し (.ics)</button>
+        <button class="btn btn-primary" onclick="exportToIcs()">Export to Outlook/macOS</button>
     </div>
+</header>
 
-    <div id="calendar-container">
-        <div id="calendar"></div>
+<div id="calendar-container">
+    <div id="calendar"></div>
+</div>
+
+<div id="eventModal">
+    <div class="modal-content">
+        <h3 style="margin-top:0">予定を登録</h3>
+        <div class="form-group">
+            <label>タイトル</label>
+            <input type="text" id="eventTitle" placeholder="例: システム導入会議">
+        </div>
+        <div class="form-group">
+            <label>メモ (任意)</label>
+            <input type="text" id="eventNote" placeholder="アジェンダ等">
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closeModal()">キャンセル</button>
+            <button class="btn btn-primary" onclick="saveEvent()">保存する</button>
+        </div>
     </div>
+</div>
 
-    <script>
-        let calendar;
-        const storageKey = 'pwa-calendar-events';
+<script>
+    let calendar;
+    let selectedInfo = null;
+    const HOLIDAYS = { "2026-01-01": "元日", "2026-01-12": "成人の日", "2026-02-11": "建国記念の日", "2026-02-23": "天皇誕生日" };
 
-        // 祝日データ（本来はAPIやライブラリから取得）
-        const holidays = {
-            "2026-01-01": "元日", "2026-01-12": "成人の日", "2026-02-11": "建国記念の日",
-            "2026-02-23": "天皇誕生日", "2026-04-29": "昭和の日", "2026-05-03": "憲法記念日"
-        };
+    document.addEventListener('DOMContentLoaded', function() {
+        const calendarEl = document.getElementById('calendar');
+        
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            // 表示切り替えボタンの設定
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'multiMonthYear,dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            buttonText: {
+                year: '年', month: '月', week: '週', day: '日', today: '今日'
+            },
+            initialView: 'dayGridMonth',
+            locale: 'ja',
+            selectable: true,
+            navLinks: true, // 日付クリックで日表示へ移動
+            events: JSON.parse(localStorage.getItem('my_events') || '[]'),
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const calendarEl = document.getElementById('calendar');
-            
-            calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
-                locale: 'ja',
-                editable: true,
-                selectable: true,
-                events: JSON.parse(localStorage.getItem(storageKey) || '[]'),
-                
-                // 祝日の表示設定
-                dayCellContent: function(arg) {
-                    const dateStr = arg.date.toISOString().split('T')[0];
-                    if (holidays[dateStr]) {
-                        return { html: `<div>${arg.dayNumberText}<span class="holiday-name">${holidays[dateStr]}</span></div>` };
-                    }
-                },
-
-                // 予定の追加
-                select: function(info) {
-                    const title = prompt('予定を入力してください:');
-                    if (title) {
-                        const newEvent = { title, start: info.startStr, end: info.endStr, allDay: info.allDay };
-                        calendar.addEvent(newEvent);
-                        saveEvents();
-                    }
-                    calendar.unselect();
+            dayCellContent: function(arg) {
+                const dateStr = arg.date.toLocaleDateString('sv-SE'); // YYYY-MM-DD
+                if (HOLIDAYS[dateStr]) {
+                    return { html: `<div>${arg.dayNumberText}<span class="holiday-label">${HOLIDAYS[dateStr]}</span></div>` };
                 }
-            });
+            },
 
-            calendar.render();
+            select: function(info) {
+                selectedInfo = info;
+                openModal();
+            }
         });
 
-        function saveEvents() {
+        calendar.render();
+    });
+
+    // モーダル制御
+    function openModal() { document.getElementById('eventModal').style.display = 'block'; document.getElementById('eventTitle').focus(); }
+    function closeModal() { document.getElementById('eventModal').style.display = 'none'; document.getElementById('eventTitle').value = ''; }
+
+    function saveEvent() {
+        const title = document.getElementById('eventTitle').value;
+        const note = document.getElementById('eventNote').value;
+        if (title && selectedInfo) {
+            const newEvent = {
+                title: title,
+                start: selectedInfo.startStr,
+                end: selectedInfo.endStr,
+                allDay: selectedInfo.allDay,
+                description: note
+            };
+            calendar.addEvent(newEvent);
             const events = calendar.getEvents().map(e => ({
-                title: e.title, start: e.startStr, end: e.endStr, allDay: e.allDay
+                title: e.title, start: e.startStr, end: e.endStr, allDay: e.allDay, description: e.extendedProps.description
             }));
-            localStorage.setItem(storageKey, JSON.stringify(events));
+            localStorage.setItem('my_events', JSON.stringify(events));
+            closeModal();
         }
+    }
 
-        // iCalendarエクスポート機能
-        function exportCalendar() {
-            const events = calendar.getEvents();
-            let icsMsg = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//PWA//JP", "METHOD:PUBLISH"];
-            
-            events.forEach(event => {
-                const start = event.start.toISOString().replace(/[-:]/g, '').split('.')[0] + "Z";
-                const end = (event.end || event.start).toISOString().replace(/[-:]/g, '').split('.')[0] + "Z";
-                icsMsg.push("BEGIN:VEVENT", `SUMMARY:${event.title}`, `DTSTART:${start}`, `DTEND:${end}`, "END:VEVENT");
-            });
+    function exportToIcs() {
+        const events = calendar.getEvents();
+        let icsRows = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//MyPWA//JP", "METHOD:PUBLISH"];
+        
+        events.forEach(e => {
+            const start = e.start.toISOString().replace(/[-:]/g, '').split('.')[0] + "Z";
+            const end = (e.end || e.start).toISOString().replace(/[-:]/g, '').split('.')[0] + "Z";
+            icsRows.push("BEGIN:VEVENT", `SUMMARY:${e.title}`, `DTSTART:${start}`, `DTEND:${end}`, `DESCRIPTION:${e.extendedProps.description || ""}`, "END:VEVENT");
+        });
 
-            icsMsg.push("END:VCALENDAR");
-            const blob = new Blob([icsMsg.join("\r\n")], { type: "text/calendar" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "my_schedule.ics";
-            a.click();
-        }
-    </script>
+        icsRows.push("END:VCALENDAR");
+        const blob = new Blob([icsRows.join("\r\n")], { type: "text/calendar" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = "schedule.ics"; a.click();
+    }
+</script>
 </body>
 </html>
